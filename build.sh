@@ -309,9 +309,11 @@ print_config_preview() {
     print_config_fragment_summary
     echo "Config assembly order:"
     echo "  1) $CONFIG_FILE"
-    echo "  2) $BASE_PATH/deconfig/compile_base.config"
-
-    local order=3
+    local order=2
+    if [[ $SKIP_COMPILE_BASE != 1 ]]; then
+        echo "  $order) $BASE_PATH/deconfig/compile_base.config"
+        order=$((order + 1))
+    fi
     local fragment
     for fragment in "${EFFECTIVE_CONFIG_FRAGMENTS[@]}"; do
         echo "  $order) $CONFIG_FRAGMENT_DIR/$fragment.config"
@@ -402,7 +404,9 @@ apply_config() {
 
     \cp -f "$CONFIG_FILE" "$BASE_PATH/../$BUILD_DIR/.config"
 
-    cat "$BASE_PATH/deconfig/compile_base.config" >> "$BASE_PATH/../$BUILD_DIR/.config"
+    if [[ $SKIP_COMPILE_BASE != 1 ]]; then
+        cat "$BASE_PATH/deconfig/compile_base.config" >> "$BASE_PATH/../$BUILD_DIR/.config"
+    fi
 
     for fragment in "${EFFECTIVE_CONFIG_FRAGMENTS[@]}"; do
         cat "$CONFIG_FRAGMENT_DIR/$fragment.config" >> "$BASE_PATH/../$BUILD_DIR/.config"
@@ -417,6 +421,7 @@ REPO_BRANCH=${REPO_BRANCH:-main}
 BUILD_DIR=$(read_ini_by_key "BUILD_DIR")
 COMMIT_HASH=$(read_ini_by_key "COMMIT_HASH")
 COMMIT_HASH=${COMMIT_HASH:-none}
+SKIP_COMPILE_BASE=$(read_ini_by_key "SKIP_COMPILE_BASE")
 
 resolve_config_fragments
 

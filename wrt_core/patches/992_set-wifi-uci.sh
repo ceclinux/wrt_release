@@ -1,8 +1,6 @@
 #!/bin/sh
 
 board_name=$(cat /tmp/sysinfo/board_name)
-# 默认监管域，可按机型覆盖（见各机型 *_wifi_cfg）
-WIFI_COUNTRY=${WIFI_COUNTRY:-US}
 hotplug_mode=0
 wifi_config_changed=0
 [ "${1:-}" = "--hotplug" ] && hotplug_mode=1
@@ -54,7 +52,7 @@ configure_wifi() {
 set wireless.radio${radio}.channel="${channel}"
 set wireless.radio${radio}.htmode="${htmode}"
 set wireless.radio${radio}.mu_beamformer='1'
-set wireless.radio${radio}.country="${WIFI_COUNTRY}"
+set wireless.radio${radio}.country='US'
 set wireless.radio${radio}.txpower="${txpower}"
 set wireless.radio${radio}.cell_density='0'
 set wireless.radio${radio}.disabled='0'
@@ -148,21 +146,33 @@ aliyun_ap8220_wifi_cfg() {
 	configure_wifi 1 1 HE20 23 'Aliyun_AP8220' '12345678'
 }
 
-cmcc_rax3000m_wifi_cfg() {
-	# 5GHz 走非 DFS 的 36-48 段：80MHz 已足够 2x2 客户端跑满 866Mbps，
-	# 且避开 DFS 雷达退避与 149 段邻居强信号（-24dBm）。
-	# 2.4GHz 避开邻居扎堆的 ch1/ch6，改用 ch11，并关闭 802.11b 低速率。
-	WIFI_COUNTRY=IE
-	configure_wifi 0 11 HE20 20 'AIERLANBAO' '12345678' 'sae-mixed'
-	configure_wifi 1 36 HE80 23 'AIERLANBAO_5G' '12345678' 'sae-mixed'
+configure_rax3000m_radio() {
+	local radio=$1 channel=$2 htmode=$3 ssid=$4
+	local iface=wireless.default_radio${radio}
+
+	wifi_radio_ready "$radio" || return 0
+	# Leave existing wireless settings intact on upgrade.
+	case "$(uci -q get "${iface}.encryption")" in
+		''|none) ;;
+		*) return 0 ;;
+	esac
+
+	# Fresh installs require a Wi-Fi password to be set over Ethernet.
 	uci -q batch <<EOF
-set wireless.radio0.legacy_rates='0'
-set wireless.default_radio0.ieee80211w='1'
-set wireless.default_radio1.ieee80211w='1'
-set wireless.default_radio0.time_zone='GMT0'
-set wireless.default_radio1.time_zone='GMT0'
+set wireless.radio${radio}.country='IE'
+set wireless.radio${radio}.channel='${channel}'
+set wireless.radio${radio}.htmode='${htmode}'
+set wireless.radio${radio}.disabled='1'
+set ${iface}.ssid='${ssid}'
+set ${iface}.encryption='sae-mixed'
+set ${iface}.ieee80211w='1'
 EOF
 	wifi_config_changed=1
+}
+
+cmcc_rax3000m_wifi_cfg() {
+	configure_rax3000m_radio 0 11 HE20 'AIERLANBAO'
+	configure_rax3000m_radio 1 44 HE80 'AIERLANBAO_5G'
 }
 
 redmi_ax6_wifi_cfg() {
