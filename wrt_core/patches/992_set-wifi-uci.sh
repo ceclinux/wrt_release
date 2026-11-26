@@ -153,8 +153,8 @@ cmcc_rax3000m_wifi_cfg() {
 	# 且避开 DFS 雷达退避与 149 段邻居强信号（-24dBm）。
 	# 2.4GHz 避开邻居扎堆的 ch1/ch6，改用 ch11，并关闭 802.11b 低速率。
 	WIFI_COUNTRY=IE
-	configure_wifi 0 11 HE20 20 'Ceclinux' '12345678' 'sae-mixed'
-	configure_wifi 1 36 HE80 23 'Ceclinux_5G' '12345678' 'sae-mixed'
+	configure_wifi 0 11 HE20 20 'AIERLANBAO' '12345678' 'sae-mixed'
+	configure_wifi 1 36 HE80 23 'AIERLANBAO_5G' '12345678' 'sae-mixed'
 	uci -q batch <<EOF
 set wireless.radio0.legacy_rates='0'
 set wireless.default_radio0.ieee80211w='1'
